@@ -11,7 +11,11 @@ namespace FamilyTree
 		{
 			db = new DBconnect("WINSERV01");
 			Console.WriteLine("Welcome to your own family tree builder!\n");
-			choicesMenu();
+			while (true)
+            {
+				choicesMenu();
+			}
+
 		}
 
 		public void choicesMenu()
@@ -21,9 +25,10 @@ namespace FamilyTree
 			Console.WriteLine("1. Add person");
 			Console.WriteLine("2. Modify relationship between two people");
 			Console.WriteLine("3. Get parents of a person");
-			Console.WriteLine("4. Get siblings of a person");
+			Console.WriteLine("4. Get ancestors of a person");
 			Console.WriteLine("5. Get children of a person");
-			Console.WriteLine("6. Remove a person");
+			Console.WriteLine("6. Get descendants of a person");
+			Console.WriteLine("7. Remove a person");
 
 			Console.WriteLine("Now enter the number of the option you want to choose:");
 			string inp = Console.ReadLine();
@@ -41,12 +46,21 @@ namespace FamilyTree
 					break;
 				case "3":
 					Console.WriteLine("\n-> Get parents of a person");
+					getParents();
 					break;
 				case "4":
+					Console.WriteLine("\n-> Get ancestors of a person");
+					break;
+				case "5":
+					Console.WriteLine("\n-> Get children of a person");
+					getChildren();
+					break;
+				case "6":
+					Console.WriteLine("\n-> Get descendants of a person");
+					
 					break;
 				default:
 					Console.WriteLine("Incorrect input, try again!");
-					choicesMenu();
 					break;
 
 			}
@@ -74,6 +88,32 @@ namespace FamilyTree
 			}
         }
 
+		public void getParents()
+        {
+			int id = -2;
+            while (true)
+            {
+				Console.WriteLine("\nPLease enter the id of the person whose parents you want to find:");
+				id = getIdFromUser(id);
+				if (db.isIdInDb(id)) break;
+			}
+
+			db.getParents(id);
+		}
+
+		public void getChildren()
+		{
+			int id = -2;
+			while (true)
+			{
+				Console.WriteLine("\nPLease enter the id of the person whose children you want to find:");
+				id = getIdFromUser(id);
+				if (db.isIdInDb(id)) break;
+			}
+			db.getChildren(id);
+		}
+
+
 		void addPerson(bool relMod)
 		{
 			Console.WriteLine("CREATE A PERSON:\nENTER FIRST NAME:\n");
@@ -87,7 +127,6 @@ namespace FamilyTree
 			Console.WriteLine("Last name: " + lname);
 			Console.WriteLine("Gender: " + gender);
 			db.addPerson(fname, lname, gender);
-			choicesMenu();
 		}
 		
 		void printRelationshipTypes()
@@ -101,8 +140,6 @@ namespace FamilyTree
 			bool getCorrectRel = false;
 			while (!getCorrectRel)
 			{
-				Console.WriteLine("\nENTER TYPE OF RELATIONSHIP:\n");
-				printRelationshipTypes();
 				rel = Console.ReadLine();
 				optionToQuit(rel);
                 switch (rel)
@@ -147,15 +184,33 @@ namespace FamilyTree
 			return g;
 		}
 
+		int getIdFromUser(int id)
+        {
+			string idstr = Console.ReadLine();
+			optionToQuit(idstr);
+			bool k = int.TryParse(idstr, out id);
+
+			if (!k)
+            {
+				Console.WriteLine("Input must be numerical! Try again");
+				id = getIdFromUser(id);
+            }
+			return id;
+        }
+
 		void modifyRelationship()
         {
 			int id1 = -1;
 			int id2 = -1;
 			bool getCorrectRel = false;
-			Console.WriteLine("Enter the id number of the first person");
+			string inp;
+			
             while (!getCorrectRel)
             {
-				id1 = Int32.Parse(Console.ReadLine());
+				Console.WriteLine("\nEnter the id number of the first person");
+				inp = Console.ReadLine();
+				optionToQuit(inp);
+				id1 = Int32.Parse(inp);
 				Console.WriteLine(id1);
                 if (db.isIdInDb(id1))
                 {
@@ -164,10 +219,13 @@ namespace FamilyTree
                 }
             }
 			getCorrectRel = false;
-			Console.WriteLine("Enter the id number of the second person");
+			Console.WriteLine("\nEnter the id number of the second person");
 			while (!getCorrectRel)
 			{
-				id2 = Int32.Parse(Console.ReadLine());
+				inp = Console.ReadLine();
+				optionToQuit(inp);
+				id2 = Int32.Parse(inp);
+				
 				Console.WriteLine(id2);
 				if (db.isIdInDb(id2))
 				{
@@ -179,6 +237,7 @@ namespace FamilyTree
                     else
                     {
 						Console.WriteLine("You can modify a relatinship only between two different people! Try again!");
+						Console.WriteLine("\nEnter the id number of the second person");
 					}
 
 				}
@@ -202,7 +261,8 @@ namespace FamilyTree
         {
 			
 			string inp = Console.ReadLine();
-
+			inp = inp.ToLower();
+			optionToQuit(inp);
 			switch(inp)
             {
 				case "y":
@@ -215,10 +275,6 @@ namespace FamilyTree
             }
 			return false;
 		}
-		void getParents()
-        {
-			Console.WriteLine();
-        }
 
 	}
 

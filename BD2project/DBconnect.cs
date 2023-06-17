@@ -64,6 +64,11 @@ namespace FamilyTree
 					adapter = new SqlDataAdapter(sqlcmd, connectionString);
 					dataSet = new DataSet();
 					adapter.Fill(dataSet);
+					if(dataSet.Tables[0].Rows.Count < 1)
+					{
+						Console.WriteLine("A person that has id=" + id + " does not exist in this database\nEnter the id again:w");
+						return false;
+					}
 					printPersonData(dataSet);
 					return true;
 
@@ -124,11 +129,51 @@ namespace FamilyTree
 
 		void addParent(int idc, int idp)
 		{
-			Console.WriteLine("Ancestors of " + idc);
-			getAncestors(idc);
-			Console.WriteLine("\nChildren of " + idc);
-			getChildren(idc);/*
-			string sqlcmd = "update Person set );";
+			bool modifyGenOfPAn = true;
+			Console.WriteLine("Ancestors of " + idp);
+			DataSet parentAnc = getAncestors(idp);
+			if(parentAnc.Tables[0].Rows.Count < 1)
+            {
+				modifyGenOfPAn = false;
+            }
+			string cgen = getHierarchyId(idc);
+			string pgen = getHierarchyId(idp);
+			string pgender = getGender(idp);
+
+			if (cgen.Equals(""))
+			{
+				cgen = "/";
+			}
+
+			if (pgender.Equals("f"))
+			{
+				pgen = "/1";
+			}
+			else
+			{
+				pgen = "/2";
+			}
+
+			string newAncGen;
+			int ancId;
+			if(modifyGenOfPAn)
+            {
+				for(int i = 0; i  < parentAnc.Tables[0].Rows.Count; ++i)
+                {
+					newAncGen = pgen + parentAnc.Tables[0].Rows[i]["gener"];
+					ancId = Convert.ToInt32(parentAnc.Tables[0].Rows[i]["id"]);
+					modifyPersonGen(ancId, newAncGen);
+				}
+            }
+			pgen += cgen;
+			modifyPersonGen(idc, cgen);
+			modifyPersonGen(idp, pgen);
+
+		}
+
+		bool modifyPersonGen(int id, string gen)
+        {
+			string sqlcmd = "update Person set gen ='" + gen + "' where id=" + id + ";";
 			using (SqlConnection cnn = new SqlConnection(connectionString))
 			{
 				SqlCommand cmd = new SqlCommand(sqlcmd, cnn);
@@ -138,21 +183,60 @@ namespace FamilyTree
 					cnn.Open();
 					int changed = cmd.ExecuteNonQuery();
 
+					if (changed > 0) return true;
 				}
 				catch (SqlException ex)
 				{
 					Console.WriteLine(ex.Message);
 				}
-			}*/
+			}
+			return false;
 		}
 		
 		public DataSet getAncestors(int id)
         {
 			string gen = getHierarchyId(id);
-			Console.WriteLine(gen);
+			DataSet dataSet = null;
+			if (gen.Equals(""))
+			{
+				Console.WriteLine("This person doesn't have any relatives in the database");
+				return dataSet;
+			}
 			string sqlcmd = "EXEC GetAncestors @gen = '" + gen + "';";
 			SqlDataAdapter adapter = null;
+
+			try
+			{
+				adapter = new SqlDataAdapter(sqlcmd, connectionString);
+				dataSet = new DataSet();
+				adapter.Fill(dataSet);
+				/*
+				for (int i = 0; i < dataSet.Tables[0].Rows.Count; ++i)
+				{
+					printPersonData2(dataSet.Tables[0].Rows[i]);
+				}*/
+				return dataSet;
+
+			}
+			catch (SqlException ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+
+			return dataSet;
+		}
+
+		public DataSet getParents(int id)
+		{
+			string gen = getHierarchyId(id);
 			DataSet dataSet = null;
+			if (gen.Equals(""))
+			{
+				Console.WriteLine("This person doesn't have parents in the database");
+				return dataSet;
+			}
+			string sqlcmd = "EXEC GET_PARENTS @gen = '" + gen + "';";
+			SqlDataAdapter adapter = null;
 
 			try
 			{
@@ -162,6 +246,58 @@ namespace FamilyTree
 				
 				for (int i = 0; i < dataSet.Tables[0].Rows.Count; ++i)
 				{
+                    if (dataSet.Tables[0].Rows[0]["gender"].ToString().Equals("f"))
+                    {
+						Console.WriteLine("Mother:");
+                    }
+                    else
+                    {
+						Console.WriteLine("Father:");
+
+					}
+					printPersonData2(dataSet.Tables[0].Rows[i]);
+				}
+				return dataSet;
+
+			}
+			catch (SqlException ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+
+			return dataSet;
+		}
+
+		public DataSet getChildren(int id)
+		{
+			string gen = getHierarchyId(id);
+			Console.WriteLine(gen);
+			DataSet dataSet = null;
+			if (gen.Equals(""))
+			{
+				Console.WriteLine("This person doesn't have any children in the database");
+				return dataSet;
+			}
+			string sqlcmd = "EXEC GET_CHILDREN @gen = '" + gen + "';";
+			SqlDataAdapter adapter = null;
+
+			try
+			{
+				adapter = new SqlDataAdapter(sqlcmd, connectionString);
+				dataSet = new DataSet();
+				adapter.Fill(dataSet);
+
+				for (int i = 0; i < dataSet.Tables[0].Rows.Count; ++i)
+				{
+					if (dataSet.Tables[0].Rows[0]["gender"].ToString().Equals("f"))
+					{
+						Console.WriteLine("Daughter:");
+					}
+					else
+					{
+						Console.WriteLine("Son:");
+
+					}
 					printPersonData2(dataSet.Tables[0].Rows[i]);
 				}
 				return dataSet;
@@ -176,11 +312,42 @@ namespace FamilyTree
 		}
 
 
-		public DataSet getChildren(int id)
+		public DataSet getDescendants(int id)
         {
 			string gen = getHierarchyId(id);
 			Console.WriteLine(gen);
+			DataSet dataSet = null;
+			if (gen.Equals(""))
+            {
+				Console.WriteLine("This person doesn't have any relatives in the database");
+				return dataSet;
+            }
 			string sqlcmd = "EXEC GetChildren @gen = '" + gen + "';";
+			SqlDataAdapter adapter = null;
+			
+
+			try
+			{
+				adapter = new SqlDataAdapter(sqlcmd, connectionString);
+				dataSet = new DataSet();
+				adapter.Fill(dataSet);/*
+				for (int i = 0; i < dataSet.Tables[0].Rows.Count; ++i)
+				{
+					printPersonData2(dataSet.Tables[0].Rows[i]);
+				}*/
+				
+			}
+			catch (SqlException ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+			return dataSet;
+		}
+
+		string getGender(int id)
+        {
+			string gender = "";
+			string sqlcmd = "Select gender from person where id=" + id + ";";
 			SqlDataAdapter adapter = null;
 			DataSet dataSet = null;
 
@@ -189,17 +356,15 @@ namespace FamilyTree
 				adapter = new SqlDataAdapter(sqlcmd, connectionString);
 				dataSet = new DataSet();
 				adapter.Fill(dataSet);
-				for (int i = 0; i < dataSet.Tables[0].Rows.Count; ++i)
-				{
-					printPersonData2(dataSet.Tables[0].Rows[i]);
-				}
-				
+
+				gender = dataSet.Tables[0].Rows[0]["gender"].ToString();
+				return gender;
 			}
 			catch (SqlException ex)
 			{
 				Console.WriteLine(ex.Message);
 			}
-			return dataSet;
+			return gender;
 		}
 			
 		string getHierarchyId(int id)
@@ -211,12 +376,12 @@ namespace FamilyTree
 
 			try
 			{
+				
 				adapter = new SqlDataAdapter(sqlcmd, connectionString);
 				dataSet = new DataSet();
 				adapter.Fill(dataSet);
 
 				gen = dataSet.Tables[0].Rows[0]["gen"].ToString();
-
 				return gen;
 			}
 			catch (SqlException ex)
@@ -230,9 +395,3 @@ namespace FamilyTree
 
 	}
 }
-/*
-string sqlcmd = "EXEC GetAncestors @gen = '" + gen + "';";
-for (int i = 0; i < dataSet.Tables[0].Rows.Count; ++i)
-{
-	printPersonData2(dataSet.Tables[0].Rows[i]);
-}*/
