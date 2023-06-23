@@ -22,13 +22,13 @@ namespace FamilyTree
         {
 			Console.WriteLine("Choose from these options:");
 			globalChoicesListing();
-			Console.WriteLine("1. Add person");
-			Console.WriteLine("2. Add parent to a person");
+			Console.WriteLine("1. Add a person");
+			Console.WriteLine("2. Add a parent to a person");
 			Console.WriteLine("3. Get ancestors of a person");
 			Console.WriteLine("4. Get descendants of a person");
 			Console.WriteLine("5. Remove relationship between a parent and a child");
 			Console.WriteLine("6. Remove a person");
-			Console.WriteLine("7. Get person's data");
+			Console.WriteLine("7. Get data of a person");
 
 			Console.WriteLine("Now enter the number of the option you want to choose:");
 			string inp = Console.ReadLine();
@@ -38,7 +38,7 @@ namespace FamilyTree
 			{
 				case "1":
 					Console.WriteLine("\n-> Add a person");
-					addPerson(false);
+					addPerson();
 					break;
 				case "2":
 					Console.WriteLine("\n-> Modify relationship between two people");
@@ -58,9 +58,11 @@ namespace FamilyTree
 					break;
 				case "6":
 					Console.WriteLine("\n-> Remove a person");
+					removePerson();
 					break;
 				case "7":
 					Console.WriteLine("\n-> Get person's Data");
+					getPersonsData();
 					break;
 				default:
 					Console.WriteLine("Incorrect input, try again!");
@@ -118,33 +120,22 @@ namespace FamilyTree
 
 			db.findDescendants(id);
 		}
-		public void getParents()
+
+		void getPersonsData()
         {
-			int id = -2;
-            while (true)
-            {
-				Console.WriteLine("\nPLease enter the id of the person whose parents you want to find:");
-				id = getIdFromUser(id);
-				if (db.isIdInDb(id)) break;
-			}
-
-			//db.getParents(id);
-		}
-
-		public void getChildren()
-		{
+			db.printAllPeople();
 			int id = -2;
 			while (true)
 			{
-				Console.WriteLine("\nPLease enter the id of the person whose children you want to find:");
+				Console.WriteLine("\nPlease enter the id of the person whose data you want to find:");
 				id = getIdFromUser(id);
 				if (db.isIdInDb(id)) break;
 			}
-			//db.getChildren(id);
+			db.getPersonsData(id);
 		}
 
 
-		void addPerson(bool relMod)
+		void addPerson()
 		{
 			Console.WriteLine("CREATE A PERSON:\nENTER FIRST NAME:\n");
 			string fname = Console.ReadLine();
@@ -160,6 +151,19 @@ namespace FamilyTree
 			Console.WriteLine("Gender: " + gender);
 			Console.WriteLine("Birthday: " + gender);
 			db.addPerson(fname, lname, gender, birth);
+		}
+
+		void removePerson()
+		{
+			db.printAllPeople();
+			int id = -2;
+			while (true)
+			{
+				Console.WriteLine("\nPLease enter the id of the person who you want to remove from database:");
+				id = getIdFromUser(id);
+				if (db.isIdInDb(id)) break;
+			}
+			db.removePerson(id);
 		}
 
 		string getDate()

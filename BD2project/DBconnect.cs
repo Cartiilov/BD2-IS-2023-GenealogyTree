@@ -39,6 +39,54 @@ namespace FamilyTree
 			return false;
 		}
 
+		public void getPersonsData(int id)
+        {
+			string sqlcmd = "EXEC GetPerson @id=" + id + ";";
+			using (SqlConnection cnn = new SqlConnection(connectionString))
+			{
+				SqlCommand cmd = new SqlCommand(sqlcmd, cnn);
+
+				try
+				{
+					cnn.Open();
+					int changed = cmd.ExecuteNonQuery();
+				}
+				catch (SqlException ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+			}
+		}
+
+		public bool removePerson(int id)
+		{
+			string sqlcmd = "EXEC RemovePerson @id=" + id + ";";
+			using (SqlConnection cnn = new SqlConnection(connectionString))
+			{
+				SqlCommand cmd = new SqlCommand(sqlcmd, cnn);
+
+				try
+				{
+					cnn.Open();
+					int changed = cmd.ExecuteNonQuery();
+					if (changed > 0)
+					{
+						Console.WriteLine("Successfully removed the  person\n");
+					}
+                    else
+                    {
+						Console.WriteLine("Removing was not successful\n");
+					}
+					return changed > 0;
+				}
+				catch (SqlException ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+			}
+			return false;
+		}
+
 		public void printPersonData2(DataRow dataSet)
         {
 			Console.WriteLine(dataSet["id"].ToString() + ". " + dataSet["firstname"].ToString() + " " + dataSet["lastname"].ToString());
@@ -171,10 +219,27 @@ namespace FamilyTree
 				return false;
 			}
 
-		void removeRelationship(int id1, int id2)
+		public bool removeRelationship(int idp, int idc)
         {
+			string sqlcmd = "EXEC RemoveRelationship @idp=" + idp + ", @idc=" + idc + ";";
+			using (SqlConnection cnn = new SqlConnection(connectionString))
+			{
+				SqlCommand cmd = new SqlCommand(sqlcmd, cnn);
 
-        }
+				try
+				{
+					cnn.Open();
+					int changed = cmd.ExecuteNonQuery();
+
+					if (changed > 0) return true;
+				}
+				catch (SqlException ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+			}
+			return false;
+		}
 
 		public DataSet getPersonData(int id)
 		{
