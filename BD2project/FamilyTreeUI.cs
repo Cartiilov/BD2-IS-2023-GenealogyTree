@@ -131,12 +131,13 @@ namespace FamilyTree
 				id = getIdFromUser(id);
 				if (db.isIdInDb(id)) break;
 			}
-			db.getPersonsData(id);
+			db.getPerson(id);
 		}
 
 
 		void addPerson()
 		{
+			
 			Console.WriteLine("CREATE A PERSON:\nENTER FIRST NAME:\n");
 			string fname = Console.ReadLine();
 			optionToQuit(fname);

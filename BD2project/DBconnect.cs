@@ -39,23 +39,53 @@ namespace FamilyTree
 			return false;
 		}
 
-		public void getPersonsData(int id)
-        {
-			string sqlcmd = "EXEC GetPerson @id=" + id + ";";
-			using (SqlConnection cnn = new SqlConnection(connectionString))
+		public int getNextId()
+		{
+			string sqlcmd = "select dbo.GetProperId() as id;";
+			SqlDataAdapter adapter = null;
+			DataSet dataSet = null;
+			int id = -2;
+			try
 			{
-				SqlCommand cmd = new SqlCommand(sqlcmd, cnn);
+				adapter = new SqlDataAdapter(sqlcmd, connectionString);
+				dataSet = new DataSet();
+				adapter.Fill(dataSet);
+				id = Convert.ToInt32(dataSet.Tables[0].Rows[0]["id"]);
+				return id;
 
-				try
-				{
-					cnn.Open();
-					int changed = cmd.ExecuteNonQuery();
-				}
-				catch (SqlException ex)
-				{
-					Console.WriteLine(ex.Message);
-				}
 			}
+			catch (SqlException ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+			return id;
+		}
+
+		public DataSet getPersonsData(int id)
+        {
+			string sqlcmd = "EXEC GetPerson @id = " + id + ";";
+			SqlDataAdapter adapter = null;
+			DataSet dataSet = null;
+
+			try
+			{
+				adapter = new SqlDataAdapter(sqlcmd, connectionString);
+				dataSet = new DataSet();
+				adapter.Fill(dataSet);
+				return dataSet;
+
+			}
+			catch (SqlException ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+			return dataSet;
+		}
+
+		public void getPerson(int id)
+        {
+			DataSet dt = getPersonsData(id);
+			printPersonData(dt);
 		}
 
 		public bool removePerson(int id)
@@ -207,7 +237,6 @@ namespace FamilyTree
 						Console.WriteLine("A person that has id=" + id + " does not exist in this database\nEnter the id again:w");
 						return false;
 					}
-					printPersonData(dataSet);
 					return true;
 
 				}
@@ -352,7 +381,7 @@ namespace FamilyTree
 				printDescendantsWithGens(dt.Tables[0].Rows[i]);
 			}
 		}
-		DataSet getAncestors(int id)
+		public DataSet getAncestors(int id)
         {
 			DataSet dataSet = null;
 			string sqlcmd = "EXEC GetAncestors @id=" + id +";";
