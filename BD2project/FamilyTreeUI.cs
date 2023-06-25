@@ -74,7 +74,7 @@ namespace FamilyTree
 		public void globalChoicesListing()
         {
 			Console.WriteLine("To quit the program input 'x' whenever you are asked for input");
-			Console.WriteLine("To see the main menu input 'm' whenever you are asked for input\n");
+			Console.WriteLine("To see the main menu input 'v' whenever you are asked for input\n");
 		}
 
 		public void optionToQuit(string opt)
@@ -85,7 +85,7 @@ namespace FamilyTree
 					Console.WriteLine("Goodbye!");
 					Environment.Exit(0);
 					break;
-				case "m":
+				case "v":
 					choicesMenu();
 					break;
 				default:
