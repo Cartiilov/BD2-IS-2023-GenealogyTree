@@ -1,12 +1,20 @@
 
+IF OBJECT_ID('bd2project') IS NOT NULL
+	DROP DATABASE bd2project;
+GO
+
+
 Create database bd2project;
+ALTER DATABASE bd2project SET TRUSTWORTHY ON;
 
 use bd2project;
 go
 
 
- DROP TABLE PERSON;
- 
+IF OBJECT_ID('Person') IS NOT NULL
+ DROP TABLE Person;
+GO
+
 
  create Table Person
  (id INT PRIMARY KEY,
@@ -20,8 +28,9 @@ go
  FOREIGN KEY(mid) references Person(id)
  );
 
- drop procedure GetProperId;
-
+IF OBJECT_ID('GetProperId') IS NOT NULL
+ DROP FUNCTION GetProperId;
+GO
 CREATE function GetProperId()
 returns int
 AS
@@ -43,12 +52,13 @@ BEGIN
 		END
 	);
 END
+go
 
 
- delete from person;
 
+IF OBJECT_ID('AddPerson') IS NOT NULL
  DROP PROCEDURE AddPerson;
-
+GO
 CREATE PROCEDURE AddPerson
 	@fname VARCHAR(50), @lname VARCHAR(50), @dob varchar(20), @gender VARCHAR(7)
 as
@@ -59,31 +69,41 @@ begin
 	INSERT INTO PERSON (id, firstname, lastname, dateofbirth, gender) values (@id, @fname, @lname, cast(@dob as DATE) , @gender);
 	SET IDENTITY_INSERT PERSON OFF;
 end
+GO
 
-EXEC AddPerson @fname = 'prawnuczka z rodu corki', @lname ='inna', @dob= '1989-07-27', @gender='f';
 
 
-select * from person;
-
-DROP PROCEDURE GetAllPeople;
+IF OBJECT_ID('GetAllPeople') IS NOT NULL
+ DROP PROCEDURE GetAllPeople;
+GO
 CREATE PROCEDURE GetAllPeople
 AS
 BEGIN
 	SELECT id, firstname, lastname from person
 END
+GO
 
-EXEC GetAllPeople;
 
-DROP PROCEDURE GetPerson;
+
+
+IF OBJECT_ID('GetPerson') IS NOT NULL
+ DROP PROCEDURE GetPerson;
+GO
+
 CREATE PROCEDURE GetPerson
 	@id INT
 AS
 BEGIN
 	SELECT id, firstname, lastname, dateofbirth, gender from person where id = @id
 END
+GO
 
-DROP PROCEDURE UpdateHidDescendants;
-DROP PROCEDURE AddParent;
+
+
+
+IF OBJECT_ID('UpdateHidDescendants') IS NOT NULL
+ DROP PROCEDURE UpdateHidDescendants;
+GO
 
 
 CREATE PROCEDURE UpdateHidDescendants
@@ -95,7 +115,16 @@ begin
 	SET @fid = (SELECT family_id FROM PERSON WHERE ID = @id);
 	update person set gen = CONCAT(@newhid, gen.ToString()), family_id = @newfid where gen.IsDescendantOf(@gen) = 1 and family_id = @fid;
 end
+GO
 
+
+
+
+
+
+IF OBJECT_ID('AddParent') IS NOT NULL
+ DROP PROCEDURE AddParent;
+GO
 
 CREATE PROCEDURE AddParent
 	@idp INT, @idc INT
@@ -128,10 +157,16 @@ BEGIN
 		UPDATE PERSON SET gen = @newgen, family_id = @rootid where id = @idc;
 	END
 END
+GO
 
-DROP PROCEDURE AddParent;
-DROP PROCEDURE RemovePerson;
 
+
+
+
+
+IF OBJECT_ID('RemovePerson') IS NOT NULL
+ DROP PROCEDURE RemovePerson;
+GO
 CREATE PROCEDURE RemovePerson
 	@id INT
 AS
@@ -153,6 +188,13 @@ BEGIN
 	END
 	DELETE FROM PERSON WHERE ID=@id;
 END
+GO
+
+
+
+IF OBJECT_ID('ChildrenHidChange') IS NOT NULL
+ DROP PROCEDURE ChildrenHidChange;
+GO
 
 CREATE PROCEDURE ChildrenHidChange
 	@generation HIERARCHYID, @pid INT
@@ -182,9 +224,12 @@ BEGIN
 	CLOSE CHILDREN_CURSOR
 	DEALLOCATE CHILDREN_CURSOR
 END
+GO
 
-DROP PROCEDURE ChildrenHidChange;
-DROP PROCEDURE RemovePerson;
+
+IF OBJECT_ID('RemoveRelationship') IS NOT NULL
+ DROP PROCEDURE RemoveRelationship;
+GO
 
 CREATE PROCEDURE RemoveRelationship
 	@idp INT, @idc INT
@@ -212,115 +257,12 @@ BEGIN
 		END
 	END
 end
-
-DROP PROCEDURE RemoveRelationship;
-
-DROP TABLE PERSON;
- create Table Person
- (id INT IDENTITY(1,1) PRIMARY KEY,
- mid INT,
- family_id INT,
- firstname VARCHAR(50),
- lastname VARCHAR(50),
- dateofbirth DATE,
- gender VARCHAR(7),
- gen HIERARCHYID,
- FOREIGN KEY(mid) references Person(id)
- );
+GO
 
 
-DROP PROCEDURE GetDescendants;
-
-
-CREATE PROCEDURE GetDescendants
-    @id INT
-as
-begin
-	CREATE TABLE #DESCENDANTS
-	( 
-		id INT,
-		firstname VARCHAR(50), 
-		lastname VARCHAR(50),
-		dateofbirth date, 
-		gender VARCHAR(7),
-		mid int, 
-		gener HIERARCHYID, 
-		fid INT
-	);
-	DECLARE @gen as HIERARCHYID, @idc AS INT;
-	DECLARE @fid as INT, @gender AS VARCHAR(6);
-	DECLARE @fatherid as INT, @fathershid HIERARCHYID;
-	SET @gen = (SELECT GEN FROM PERSON WHERE ID= @id);
-	SET @fid = (SELECT family_id FROM PERSON WHERE ID= @id);
-	SET @gender = (SELECT gender FROM PERSON WHERE ID= @id);
-	
-
-	IF @gender LIKE 'f'
-	BEGIN
-		
-		CREATE TABLE #child
-		( 
-		id INT
-		);
-
-		WITH CHILDREN (id)
-		AS
-		(
-			SELECT id FROM PERSON WHERE mid = @id
-		)
-		INSERT INTO #child SELECT * FROM CHILDREN;
-
-		
-		DECLARE DESCENDANTS_CURSOR CURSOR
-		FOR
-		SELECT id from #child
-
-		OPEN DESCENDANTS_CURSOR
-		FETCH NEXT FROM DESCENDANTS_CURSOR INTO @idc;
-
-		WHILE @@FETCH_STATUS = 0
-		BEGIN
-			SET @fid = (SELECT family_id FROM PERSON WHERE ID= @idc);
-			SET @gen = (SELECT GEN FROM PERSON WHERE ID= @idc);
-			SET @fathershid = (SELECT @gen.GetAncestor(1) FROM PERSON WHERE ID=@idc);
-			SET @fatherid = (SELECT ID FROM PERSON WHERE gen = @fathershid and family_id = @fid);
-			INSERT INTO #DESCENDANTS
-			EXEC GetDescendants @id = @fatherid;
-
-			FETCH NEXT FROM DESCENDANTS_CURSOR INTO @idc;
-		END
-
-		CLOSE DESCENDANTS_CURSOR
-		DEALLOCATE DESCENDANTS_CURSOR
-		drop table #child;
-	END
-	ELSE IF @gender LIKE 'm'
-	BEGIN
-		with maleLine (id, firstname, lastname, dateofbirth, gender, mid, gener, fid)
-		AS	
-		(
-			select id, firstname, lastname, dateofbirth, gender, mid, gen.ToString(), family_id
-			from person where gen.IsDescendantOf(@gen) = 1 and gen != @gen and family_id = @fid
-		),
-		femaleline (id, firstname, lastname, dateofbirth, gender, mid, gener, fid) 
-		as
-		(
-			SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, p.mid, p.gen.ToString(), family_id
-			FROM person p join maleLine ml on ml.id = p.mid
-			UNION
-			select * from maleLine
-		)
-		INSERT INTO #DESCENDANTS SELECT * FROM femaleline;
-	END
-
-	SELECT * FROM #DESCENDANTS;
-	DROP TABLE #DESCENDANTS;
-end
-
-DROP PROCEDURE GetDescendants;
-EXEC GetDescendants @id = 5;
-select *,  gen.ToString()from person;
-
+IF OBJECT_ID('GetAncestors') IS NOT NULL
+ DROP PROCEDURE GetAncestors;
+GO
 CREATE PROCEDURE GetAncestors
 	 @id INT
 AS
@@ -383,33 +325,12 @@ BEGIN
 	SELECT DISTINCT * FROM #ANC WHERE id != @id;
 	DROP TABLE #ANC;
 END
-
-DROP PROCEDURE GetAncestors;
-
-EXEC GetAncestors @id = 12;
-select *,  gen.ToString()from person;
+GO
 
 
------------------------------------------
-/*
-CREATE PROCEDURE GetDescendants
-    @id INT
-as
-begin
-	DECLARE @gen as HIERARCHYID;
-	DECLARE @fid as INT;
-	SET @gen = (SELECT GEN FROM PERSON WHERE ID= @id);
-	SET @fid = (SELECT family_id FROM PERSON WHERE ID= @id);
-	with maleLine (id, firstname, lastname, dateofbirth, gender, mid, gener, fid)
-	AS	(select id, firstname, lastname, dateofbirth, gender, mid, gen.ToString(), family_id from person where gen.IsDescendantOf(@gen) = 1 and gen != @gen)
-	SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, p.mid, p.gen.ToString() FROM person p join maleLine ml on ml.id = p.mid
-	UNION
-	select * from maleLine;
-end
-
-
-
-DROP PROCEDURE GetDescendants;
+IF OBJECT_ID('GetDescendants') IS NOT NULL
+ DROP PROCEDURE GetDescendants;
+GO
 CREATE PROCEDURE GetDescendants
     @id INT
 as
@@ -424,96 +345,107 @@ begin
 		n INT
 	);
 
-	with descen(id, fname, lname, dob, gender, n, fid, gen)
-	as
-	(
-		SELECT id, firstname, lastname, dateofbirth, gender, 2, family_id, gen FROM PERSON 
-		WHERE MID=@id
+	DECLARE @gender AS VARCHAR(6), @gen HIERARCHYID, @fid INT;
+	SET @gender = (select gender from person where id = @id);
 
-		UNION ALL
+	IF @gender LIKE 'f'
+	BEGIN
+			with descen(id, fname, lname, dob, gender, n, fid, gen)
+			as
+			(
+				SELECT id, firstname, lastname, dateofbirth, gender, 2, family_id, gen FROM PERSON 
+				WHERE MID=@id
 
-        SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, n+1, p.family_id, p.gen
-		from PERSON P JOIN descen D ON P.MID = D.ID
-	),
-	other(id, fname, lname, dob, gender, n, fid, gen)
-	as
-	(
-		SELECT id, fname, lname, dob, gender, n, fid, gen from descen where gen is not null
+				UNION ALL
+
+				SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, n+1, p.family_id, p.gen
+				from PERSON P JOIN descen D ON P.MID = D.ID
+			),
+			other(id, fname, lname, dob, gender, n, fid, gen)
+			as
+			(
+				SELECT id, fname, lname, dob, gender, n, fid, gen from descen where gen is not null
 		
-		UNION ALL
+				UNION ALL
 
-		SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, n+1, p.family_id, p.gen
-		from PERSON P JOIN other O ON o.fid = p.family_id and p.gen.IsDescendantOf(o.gen) = 1
-	)
-	INSERT INTO #DESC ( id, firstname, lastname, dateofbirth, gender, n)
-	SELECT  id, fname, lname, dob, gender, n FROM descen
-	union all
-	SELECT id, fname, lname, dob, gender, n FROM OTHER;
+				SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, n+1, p.family_id, p.gen
+				from PERSON P JOIN other O ON o.fid = p.family_id and p.gen.IsDescendantOf(o.gen) = 1
+			)
+			INSERT INTO #DESC ( id, firstname, lastname, dateofbirth, gender, n)
+			SELECT  id, fname, lname, dob, gender, n FROM descen
+			union all
+			SELECT id, fname, lname, dob, gender, n FROM OTHER;
 
+	END
+	ELSE BEGIN
+		SET @gen = (SELECT gen from person where id = @id);
+		SET @fid = (SELECT family_id from person where id = @id);
+			WITH other(id, fname, lname, dob, gender, n, fid, gen, mid)
+			as
+			(
+				SELECT id, firstname, lastname, dateofbirth, gender, CAST((gen.GetLevel() - @gen.GetLevel()) AS INT), family_id, gen, mid from person 
+				where family_id = @fid and gen.IsDescendantOf(@gen) = 1 and id != @id
+			),
+			womendesc(id, fname, lname, dob, gender, n, fid, gen, mid)
+			as
+			(
+				SELECT id, fname, lname, dob, gender, n, fid, gen, mid FROM other
+
+				UNION ALL
+
+				SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, n+1, p.family_id, p.gen, p.mid
+				from PERSON P JOIN womendesc D ON D.ID = P.MID where p.id != d.id and n < 10
+			)
+			INSERT INTO #DESC (id, firstname, lastname, dateofbirth, gender, n)
+			SELECT  id, fname, lname, dob, gender, n FROM other
+			union all
+			SELECT id, fname, lname, dob, gender, n FROM womendesc;
+	END
 	SELECT DISTINCT * FROM #DESC WHERE id != @id;
 	DROP TABLE #DESC;
-end*/
+end
+GO
+
+
+
+
+
+
+--testinde
 /*
-exec GetDescendants @id = 1;
-
-	with descen(id, fname, lname, dob, gender, n, fid, gen)
-	as
-	(
-		SELECT id, firstname, lastname, dateofbirth, gender, 2, family_id, gen FROM PERSON 
-		WHERE MID=5
-
-		UNION ALL
-
-        SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, n+1, p.family_id, p.gen
-		from PERSON P JOIN descen D ON P.MID = D.ID
-	)
-	other(id, fname, lname, dob, gender, n, fid, gen)
-	as
-	(
-		SELECT id, fname, lname, dob, gender, n, fid, gen from descen where gen is not null and gender LIKE 'm'
-		
-		UNION ALL
-
-		SELECT p.id, p.firstname, p.lastname, p.dateofbirth, p.gender, n+1, p.family_id, p.gen
-		from PERSON P JOIN other O ON o.fid = p.family_id and p.gen.IsDescendantOf(o.gen) = 1 and p.id != 5
-	) 	SELECT  id, fname, lname, dob, gender, n FROM descen
-	union all
-	SELECT id, fname, lname, dob, gender, n FROM OTHER;*/
-
-
-
-
-
-
---testing
-
-EXEC AddPerson @fname = 'dziadek', @lname ='ktos', @dob= '1900-07-27', @gender='m';
-EXEC AddPerson @fname = 'syn', @lname ='ktos', @dob= '1930-07-27', @gender='m';
-EXEC AddPerson @fname = 'wnuk', @lname ='ktos', @dob= '1960-07-27', @gender='f';
-EXEC AddPerson @fname = 'wnuk2', @lname ='ktos', @dob= '1962-07-27', @gender='f';
-EXEC AddPerson @fname = 'corka', @lname ='inna', @dob= '1935-07-27', @gender='f';
+delete from person;
+EXEC AddPerson @fname = 'Pradziadek', @lname ='ktos', @dob= '1860-07-27', @gender='m';
+EXEC AddPerson @fname = 'Dziadek', @lname ='ktos', @dob= '1900-07-27', @gender='m';
+EXEC AddPerson @fname = 'Ojciec', @lname ='ktos', @dob= '1930-07-27', @gender='m';
+EXEC AddPerson @fname = 'wnuczka', @lname ='ktos', @dob= '1960-07-27', @gender='f';
+EXEC AddPerson @fname = 'wnuczka', @lname ='ktos', @dob= '1962-07-27', @gender='f';
+EXEC AddPerson @fname = 'syn wnuczki', @lname ='inna', @dob= '1935-07-27', @gender='f';
 EXEC AddPerson @fname = 'maz corki', @lname ='inna', @dob= '1928-07-27', @gender='m';
 EXEC AddPerson @fname = 'corka corki', @lname ='inna', @dob= '1957-07-27', @gender='f';
 EXEC AddPerson @fname = 'prawnuczka z rodu corki', @lname ='inna', @dob= '1989-07-27', @gender='f';
 
 select * , gen.ToString() from person;
-EXEC AddParent @idp = 2, @idc = 3;
-EXEC AddParent @idp = 2, @idc = 4;
 EXEC AddParent @idp = 1, @idc = 2;
-EXEC AddParent @idp = 1, @idc = 5;
-EXEC AddParent @idp = 5, @idc = 7;
-EXEC AddParent @idp = 6, @idc = 7;
+EXEC AddParent @idp = 2, @idc = 3;
+EXEC AddParent @idp = 2, @idc = 3;
+EXEC AddParent @idp = 4, @idc = 1;
+
+
+
 
 select * , gen.ToString() from person;
 EXEC AddParent @idp = 7, @idc = 8;
 select * , gen.ToString() from person;
 delete from person;
 
-EXEC GetAncestors @id =3;
+select * , gen.ToString() from person;
+EXEC GetDescendants @id =4;
+select * , gen.ToString() from person;
+EXEC GetAncestors @id =5;
 
 
 EXEC RemovePerson @id = 1;
 select *,  gen.ToString()from person;
 
 EXEC RemoveRelationship @idp=2, @idc=3;
-select *,  gen.ToString()from person;
+select *,  gen.ToString()from person;*/
